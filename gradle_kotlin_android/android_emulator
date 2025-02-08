@@ -1,0 +1,59 @@
+FROM gradle:8.4.0-jdk17-alpine AS builder
+
+# Установка необходимых пакетов
+RUN apk add --no-cache \
+    wget unzip libstdc++ libgcc mesa-dri-gallium mesa-egl qemu-system-x86_64 xvfb
+
+# Задаем версии Android SDK и Command Line Tools через ARG
+ARG CMDLINE_TOOLS_VERSION=11076708
+
+# Установка Android SDK
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+RUN mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip -O /tmp/cmdline-tools.zip && \
+    unzip /tmp/cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools && \
+    mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest && \
+    rm /tmp/cmdline-tools.zip
+
+# Установка нужных инструментов SDK
+ENV PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH
+RUN yes | sdkmanager --licenses && \
+    sdkmanager "platform-tools" \
+               "platforms;android-33" "build-tools;33.0.0" \
+               "platforms;android-34" "build-tools;34.0.0" \
+               "platforms;android-35" "build-tools;35.0.0" \
+               "system-images;android-34;google_apis;x86_64" \
+               "emulator"
+
+# Вывод установленных SDK
+RUN sdkmanager --list | grep "installed"
+
+# Создание AVD (Android Virtual Device)
+RUN echo "no" | avdmanager create avd -n test_avd -k "system-images;android-34;google_apis;x86_64" --device "pixel_4"
+
+# Установка Kotlin Compiler
+RUN wget -q https://github.com/JetBrains/kotlin/releases/download/1.9.10/kotlin-compiler-1.9.10.zip -O /tmp/kotlin.zip && \
+    unzip /tmp/kotlin.zip -d /opt/kotlin && \
+    rm /tmp/kotlin.zip
+
+# Добавляем Kotlin в PATH
+ENV PATH="/opt/kotlin/bin:$PATH"
+
+# Установка прав на Gradle и Android SDK
+RUN chmod -R 777 /opt/android-sdk
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Переменные окружения для эмулятора
+ENV ANDROID_AVD_HOME=/root/.android/avd
+ENV DISPLAY=:99
+
+# Запуск эмулятора и ожидание его полной загрузки перед тестами
+CMD Xvfb :99 -screen 0 1280x800x16 & \
+    emulator -avd test_avd -no-audio -no-window -no-accel -gpu off -verbose & \
+    adb wait-for-device && \
+    until adb shell getprop sys.boot_completed | grep -m 1 "1"; do sleep 1; done && \
+    adb shell input keyevent 82 && \
+    tail -F /dev/null
+

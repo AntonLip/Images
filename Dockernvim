@@ -1,0 +1,5 @@
+FROM alpine:3.21
+RUN apk add git lazygit fzf curl neovim ripgrep alpine-sdk --update && \
+  mkdir -p /root/.config/nvim && \
+  git clone https://github.com/LazyVim/starter ~/.config/nvim && \
+  cd ~/.config/nvim

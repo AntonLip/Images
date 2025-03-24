@@ -1,0 +1,39 @@
+version: "3.7"
+services:
+
+  cassandra:
+    image: bitnami/cassandra:3.11.10-debian-10-r13
+    hostname: cassandra
+    container_name: cassandra
+    networks:
+      app-network:
+        ipv4_address: 192.168.1.100
+    environment:
+      CASSANDRA_SEEDS: 192.168.1.100
+      CASSANDRA_USER: cassandra
+      CASSANDRA_PASSWORD: cassandra
+      CASSANDRA_PASSWORD_SEEDER: "yes"
+    restart: unless-stopped
+
+  cassandra-web:
+    build: ./
+    image: dcagatay/cassandra-web:latest
+    depends_on:
+      - cassandra
+    ports:
+      - 3000:3000
+    networks:
+      - app-network 
+    environment:
+      CASSANDRA_HOST_IPS: 192.168.1.100
+      CASSANDRA_PORT: 9042
+      CASSANDRA_USER: cassandra
+      CASSANDRA_PASSWORD: cassandra
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24

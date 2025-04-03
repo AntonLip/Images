@@ -1,0 +1,80 @@
+services:
+  selenium-hub:
+    image: selenium/hub:latest
+    container_name: selenium-hub
+    ports:
+      - "4444:4444"
+    environment:
+      - GRID_MAX_SESSION=5
+      - GRID_BROWSER_TIMEOUT=60
+      - GRID_TIMEOUT=60
+
+  chrome:
+    image: selenium/node-chrome:latest
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    shm_size: "2g"
+
+  firefox:
+    image: selenium/node-firefox:latest
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    shm_size: "2g"
+
+  selenium-ui:
+    image: selenium/standalone-chrome:latest
+    container_name: selenium-ui
+    depends_on:
+      - selenium-hub
+    ports:
+      - "7900:7900"
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    shm_size: "2g"
+
+  nginx:
+    image: nginx:latest
+    container_name: selenium-proxy
+    depends_on:
+      - selenium-hub
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+  appium:
+    image: appium/appium:latest
+    container_name: appium-server
+    privileged: true
+    environment:
+      - APPIUM_ALLOW_INSECURE=chromedriver_autodownload
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    ports:
+      - "4723:4723"
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+
+  android-emulator:
+    image: budtmo/docker-android:emulator_13.0
+    container_name: android-emulator
+    privileged: true
+    environment:
+      - DEVICE=Pixel_4
+      - ANDROID_API_LEVEL=33
+      - APPIUM=true
+    ports:
+      - "6080:6080"  # VNC-доступ к эмулятору
+      - "4724:4724"  # Appium сервер внутри эмулятора
+

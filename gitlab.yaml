@@ -1,0 +1,18 @@
+stages:
+  - analyze
+
+get-commit-index:
+  stage: analyze
+  tags: [docker]
+  image: 'alpine:latest'
+  before_script:
+    - apk add --no-cache git coreutils
+  script:
+    - echo "Current branch"
+    - git fetch origin '+refs/heads/*:refs/remotes/origin/*'
+#    - git checkout "$CI_COMMIT_REF_NAME"
+    - other_branches=$(git for-each-ref --format='%(refname:short)' refs/remotes/origin/ | grep -v "origin/${CI_COMMIT_REF_NAME}" | sed 's/^/^/' | tr '\n' ' ')
+    - echo "Other branches to exclude ${other_branches}"
+    - echo "Branch ${CI_COMMIT_REF_NAME}"
+    - commit_index=$(git rev-list --reverse $CI_COMMIT_REF_NAME $other_branches | wc -l)
+    - echo "Commit index ${commit_index}"

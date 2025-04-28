@@ -1,0 +1,13 @@
+{{- range .Values.vaultSecrets }}
+apiVersion: external-secrets.io/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: {{ .name }}
+spec:
+  vaultAuthRef: my-vault-auth         
+  data:
+    {{- range .keys }}
+    - secretKey: {{ . | quote }}
+      remoteRef: {{ $.path }}#{{ . }}
+    {{- end }}
+{{- end }}

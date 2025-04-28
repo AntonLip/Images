@@ -1,0 +1,10 @@
+vaultSecrets:
+  - name: app-secret
+    path: secret/data/app
+      - username
+      - password
+  - name: db-secret
+    path: secret/data/db
+    keys:
+      - db_user
+      - db_pass

@@ -16,12 +16,10 @@ WORKDIR $ANDROID_HOME
 
 # Загружаем Android SDK
 RUN wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip \
-    && unzip commandlinetools-linux-9477386_latest.zip -d cmdline-tools \
-    && mv cmdline-tools cmdline-tools/latest \
-    && rm commandlinetools-linux-9477386_latest.zip
+    && unzip commandlinetools-linux-9477386_latest.zip -d cmdline-tools 
 
 # Устанавливаем необходимые пакеты SDK
-ENV PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
+ENV PATH=$ANDROID_HOME/cmdline-tools/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
 RUN yes | sdkmanager --licenses \
     && sdkmanager "platform-tools" "platforms;android-34" "system-images;android-34;google_apis;x86_64" "emulator"
 
